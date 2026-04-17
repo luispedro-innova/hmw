@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HMW Prefeasibility Agent — InnovArise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:        #0f0e0c;
+      --ink-muted:  #6b6860;
+      --ink-faint:  #b5b3ae;
+      --paper:      #f5f3ee;
+      --paper-warm: #ede9e2;
+      --rule:       #d9d6cf;
+      --accent:     #c84b2f;
+      --accent-lt:  #f5ece9;
+      --blue-oce:   #1a5c8a;
+      --purple-oce: #6b3fa0;
+      --red-oce:    #b83232;
+      --green-pos:  #1e6b42;
+      --mono: 'DM Mono', monospace;
+      --serif: 'Instrument Serif', Georgia, serif;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    /* ── Config panel ── */
+    #config-overlay {
+      position: fixed; inset: 0;
+      background: var(--paper);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      padding: 2rem;
+    }
+    .config-box {
+      width: 100%; max-width: 480px;
+      border: 1px solid var(--rule);
+      background: white;
+      padding: 2.5rem;
+    }
+    .config-box h1 {
+      font-family: var(--serif);
+      font-size: 1.75rem;
+      font-weight: 400;
+      margin-bottom: 0.25rem;
+    }
+    .config-box .sub {
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      font-family: var(--mono);
+      margin-bottom: 2rem;
+      letter-spacing: 0.05em;
+    }
+    .field { margin-bottom: 1.25rem; }
+    .field label {
+      display: block;
+      font-size: 0.7rem;
+      font-family: var(--mono);
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      margin-bottom: 0.4rem;
+      text-transform: uppercase;
+    }
+    .field input {
+      width: 100%;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      padding: 0.6rem 0.75rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--ink-muted); }
+    .btn-primary {
+      width: 100%;
+      background: var(--ink);
+      color: var(--paper);
+      border: none;
+      padding: 0.8rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 0.5rem;
+    }
+    .btn-primary:hover { background: #2a2925; }
+
+    /* ── Main layout ── */
+    #app { display: none; flex-direction: column; min-height: 100vh; }
+    #app.visible { display: flex; }
+
+    header {
+      border-bottom: 1px solid var(--rule);
+      padding: 1.25rem 2rem;
+      display: flex; align-items: baseline; gap: 1.5rem;
+      background: white;
+    }
+    header h1 {
+      font-family: var(--serif);
+      font-size: 1.4rem;
+      font-weight: 400;
+      font-style: italic;
+    }
+    header .meta {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+      letter-spacing: 0.05em;
+    }
+    .header-right {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    #record-count {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--ink-muted);
+    }
+    .btn-refresh {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      border: 1px solid var(--rule);
+      background: none;
+      padding: 0.4rem 0.9rem;
+      cursor: pointer;
+      color: var(--ink-muted);
+      transition: all 0.15s;
+    }
+    .btn-refresh:hover { border-color: var(--ink-muted); color: var(--ink); }
+
+    main { flex: 1; padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      text-align: left;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--rule);
+      white-space: nowrap;
+    }
+    tbody tr {
+      border-bottom: 1px solid var(--rule);
+      transition: background 0.1s;
+    }
+    tbody tr:hover { background: white; }
+    tbody td {
+      padding: 1rem;
+      vertical-align: top;
+      font-size: 0.85rem;
+    }
+    .td-hmw {
+      max-width: 340px;
+      line-height: 1.5;
+      color: var(--ink);
+    }
+    .td-hmw .hmw-text {
+      font-family: var(--serif);
+      font-size: 0.95rem;
+      font-style: italic;
+      line-height: 1.5;
+    }
+    .td-scores { white-space: nowrap; }
+    .score-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; }
+    .score-label {
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      color: var(--ink-muted);
+      width: 70px;
+      letter-spacing: 0.04em;
+    }
+    .score-bar-wrap {
+      width: 60px; height: 5px;
+      background: var(--paper-warm);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .score-bar { height: 100%; border-radius: 2px; background: var(--ink); }
+    .score-num {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--ink);
+      min-width: 20px;
+    }
+    .ocean-badge {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.08em;
+      padding: 0.2rem 0.5rem;
+      border-radius: 2px;
+      margin-top: 0.25rem;
+      font-weight: 500;
+    }
+    .ocean-BLUE   { background: #dff0fa; color: var(--blue-oce); }
+    .ocean-RED    { background: #fde8e8; color: var(--red-oce); }
+    .ocean-PURPLE { background: #f0e8fa; color: var(--purple-oce); }
+    .td-analysis {
+      max-width: 380px;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: var(--ink-muted);
+    }
+    .analysis-preview { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+    .analysis-preview.expanded { -webkit-line-clamp: unset; }
+    .expand-btn {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      color: var(--accent);
+      background: none; border: none;
+      cursor: pointer; padding: 0;
+      margin-top: 0.3rem;
+      display: block;
+      letter-spacing: 0.04em;
+    }
+    .td-action { white-space: nowrap; }
+    .btn-analyze {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      border: 1px solid var(--ink);
+      background: none;
+      padding: 0.45rem 0.9rem;
+      cursor: pointer;
+      color: var(--ink);
+      transition: all 0.15s;
+    }
+    .btn-analyze:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+    .btn-analyze:disabled { border-color: var(--rule); color: var(--ink-faint); cursor: not-allowed; }
+    .btn-analyzing {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--accent);
+      border: 1px solid var(--accent-lt);
+      background: var(--accent-lt);
+      padding: 0.45rem 0.9rem;
+      letter-spacing: 0.05em;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .spinner {
+      width: 10px; height: 10px;
+      border: 1.5px solid var(--accent);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .td-date {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--ink-faint);
+      white-space: nowrap;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--ink-muted);
+    }
+    .empty-state p { font-family: var(--mono); font-size: 0.8rem; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 2rem; right: 2rem;
+      background: var(--ink); color: var(--paper);
+      font-family: var(--mono); font-size: 0.75rem;
+      padding: 0.75rem 1.25rem;
+      opacity: 0; transform: translateY(8px);
+      transition: all 0.2s;
+      pointer-events: none;
+      max-width: 360px; line-height: 1.4;
+      letter-spacing: 0.03em;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.error { background: var(--red-oce); }
+  </style>
+</head>
+<body>
+
+<!-- ── Config overlay ── -->
+<div id="config-overlay">
+  <div class="config-box">
+    <h1>HMW Agent</h1>
+    <p class="sub">InnovArise · Prefeasibility Engine</p>
+    <div class="field">
+      <label>Airtable API Key</label>
+      <input type="password" id="cfg-at-key" placeholder="pat..."/>
+    </div>
+    <div class="field">
+      <label>Airtable Base ID</label>
+      <input type="text" id="cfg-at-base" placeholder="app..."/>
+    </div>
+    <div class="field">
+      <label>Airtable Table Name</label>
+      <input type="text" id="cfg-at-table" placeholder="HMWs"/>
+    </div>
+    <button class="btn-primary" onclick="saveConfig()">Conectar →</button>
+    <p style="margin-top:1rem;font-size:0.7rem;color:var(--ink-faint);font-family:var(--mono)">
+      Tus credenciales se guardan solo en este navegador (localStorage).
+    </p>
+  </div>
+</div>
+
+<!-- ── Main app ── -->
+<div id="app">
+  <header>
+    <h1>HMW Prefeasibility Agent</h1>
+    <span class="meta">InnovArise · Latin America</span>
+    <div class="header-right">
+      <span id="record-count"></span>
+      <button class="btn-refresh" onclick="loadRecords()">↺ Refresh</button>
+      <button class="btn-refresh" onclick="resetConfig()" style="color:var(--ink-faint)">⚙ Config</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>HMW Question</th>
+            <th>Scores</th>
+            <th>Analysis</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="records-tbody">
+          <tr><td colspan="6" class="empty-state"><p>Loading records...</p></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Config ──────────────────────────────────────────────────────────────────
+const CFG_KEY = 'hmw_agent_config';
+
+function saveConfig() {
+  const key   = document.getElementById('cfg-at-key').value.trim();
+  const base  = document.getElementById('cfg-at-base').value.trim();
+  const table = document.getElementById('cfg-at-table').value.trim();
+  if (!key || !base || !table) { toast('Completa todos los campos.', true); return; }
+  localStorage.setItem(CFG_KEY, JSON.stringify({ key, base, table }));
+  document.getElementById('config-overlay').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  loadRecords();
+}
+
+function resetConfig() {
+  localStorage.removeItem(CFG_KEY);
+  location.reload();
+}
+
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem(CFG_KEY)); }
+  catch { return null; }
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const cfg = getConfig();
+  if (cfg) {
+    document.getElementById('config-overlay').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    loadRecords();
+  }
+});
+
+// ── Load records from Airtable ───────────────────────────────────────────────
+async function loadRecords() {
+  const cfg = getConfig();
+  if (!cfg) return;
+
+  const tbody = document.getElementById('records-tbody');
+  tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><p>Cargando registros...</p></td></tr>`;
+
+  try {
+    const url = `https://api.airtable.com/v0/${cfg.base}/${encodeURIComponent(cfg.table)}?pageSize=50&sort[0][field]=HMW&sort[0][direction]=asc`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${cfg.key}` } });
+    if (!res.ok) throw new Error(`Airtable: ${res.status}`);
+    const data = await res.json();
+    renderRecords(data.records || []);
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><p>Error: ${err.message}</p></td></tr>`;
+    toast(err.message, true);
+  }
+}
+
+// ── Render table ─────────────────────────────────────────────────────────────
+function renderRecords(records) {
+  const tbody = document.getElementById('records-tbody');
+  document.getElementById('record-count').textContent = `${records.length} registros`;
+
+  if (!records.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><p>No se encontraron registros.</p></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = records.map((rec, i) => {
+    const f = rec.fields;
+    const hmw      = f['HMW'] || '—';
+    const analysis = f['Análisis_Cualitativo'] || '';
+    const mScore   = f['Market_Size_Score'] || null;
+    const cScore   = f['Competencia_Score'] || null;
+    const gScore   = f['Crecimiento_Score'] || null;
+    const ocean    = f['Ocean_Recomendacion'] || null;
+    const rationale= f['Score_Rationale'] || '';
+    const date     = f['Fecha_Análisis'] || '';
+    const hasResult = !!analysis;
+
+    const oceanWord = ocean ? ocean.split(' ')[0] : null;
+
+    return `
+      <tr id="row-${rec.id}">
+        <td class="td-date" style="color:var(--ink-faint);font-size:0.7rem">${i+1}</td>
+        <td class="td-hmw"><div class="hmw-text">${escHtml(hmw)}</div></td>
+        <td class="td-scores">
+          ${hasResult ? `
+            ${scoreRow('MKT', mScore)}
+            ${scoreRow('COMP', cScore)}
+            ${scoreRow('GROW', gScore)}
+            ${oceanWord ? `<span class="ocean-badge ocean-${oceanWord}">${ocean}</span>` : ''}
+          ` : `<span style="font-family:var(--mono);font-size:0.7rem;color:var(--ink-faint)">—</span>`}
+        </td>
+        <td class="td-analysis">
+          ${hasResult ? `
+            <div class="analysis-preview" id="ap-${rec.id}">${escHtml(analysis)}</div>
+            <button class="expand-btn" onclick="toggleExpand('${rec.id}')">ver más ↓</button>
+            ${rationale ? `<div style="margin-top:0.5rem;font-size:0.72rem;color:var(--ink-faint);font-family:var(--mono);border-left:2px solid var(--rule);padding-left:0.5rem">${escHtml(rationale)}</div>` : ''}
+          ` : `<span style="font-family:var(--mono);font-size:0.7rem;color:var(--ink-faint)">Sin análisis</span>`}
+        </td>
+        <td class="td-date">${date || '—'}</td>
+        <td class="td-action" id="action-${rec.id}">
+          <button class="btn-analyze" onclick="analyzeRecord('${rec.id}', this)">
+            ${hasResult ? '↺ Re-analizar' : 'Analizar →'}
+          </button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function scoreRow(label, val) {
+  if (val === null) return '';
+  const pct = (val / 10) * 100;
+  return `<div class="score-row">
+    <span class="score-label">${label}</span>
+    <div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%"></div></div>
+    <span class="score-num">${val}</span>
+  </div>`;
+}
+
+function toggleExpand(id) {
+  const el = document.getElementById(`ap-${id}`);
+  const btn = el.nextElementSibling;
+  el.classList.toggle('expanded');
+  btn.textContent = el.classList.contains('expanded') ? 'ver menos ↑' : 'ver más ↓';
+}
+
+// ── Analyze a single record ──────────────────────────────────────────────────
+async function analyzeRecord(recordId, btn) {
+  const cfg = getConfig();
+  if (!cfg) return;
+
+  // Get HMW text from the row
+  const row = document.getElementById(`row-${recordId}`);
+  const hmwText = row.querySelector('.hmw-text')?.textContent?.trim();
+  if (!hmwText || hmwText === '—') { toast('No hay texto HMW en este registro.', true); return; }
+
+  // Show spinner
+  const actionCell = document.getElementById(`action-${recordId}`);
+  actionCell.innerHTML = `<div class="btn-analyzing"><div class="spinner"></div>Analizando...</div>`;
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ recordId, hmwText })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Error desconocido');
+    }
+
+    toast('✓ Análisis completado. Recargando...');
+    setTimeout(() => loadRecords(), 1200);
+  } catch (err) {
+    actionCell.innerHTML = `<button class="btn-analyze" onclick="analyzeRecord('${recordId}', this)">↺ Reintentar</button>`;
+    toast(err.message, true);
+  }
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = isError ? 'show error' : 'show';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 4000);
+}
+</script>
+</body>
+</html>
