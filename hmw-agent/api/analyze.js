@@ -1,4 +1,4 @@
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 120 };
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -62,10 +62,10 @@ Search the web for relevant market data, existing solutions, and growth signals.
         'Content-Type': 'application/json',
         'x-api-key': ANTHROPIC_KEY,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'interleaved-thinking-2025-05-14'
+        'anthropic-beta': 'interleaved-thinking-2025-05-14,web-search-2025-03-05'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 16000,
         thinking: { type: 'enabled', budget_tokens: 10000 },
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
