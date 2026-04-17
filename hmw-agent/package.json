@@ -1,7 +1,0 @@
-{
-  "name": "hmw-prefeasibility-agent",
-  "version": "1.0.0",
-  "description": "InnovArise HMW venture building prefeasibility agent",
-  "private": true,
-  "engines": { "node": ">=18" }
-}
